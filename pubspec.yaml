@@ -1,0 +1,59 @@
+name: gym_app
+description: A new Flutter project.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# ВОТ ЭТОТ БЛОК ДОЛЖЕН БЫТЬ ОБЯЗАТЕЛЬНО:
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+ 
+    sdk: flutter
+
+ # Библиотека для SQLite (локальная база)
+  sqflite: ^2.3.0
+  # Для работы с путями файловой системы
+  path_provider: ^2.1.1
+  # Для объединения путей (нужна sqflite)
+  path: ^1.8.3
+  # Для работы с датами (форматирование и т.д.)
+  intl: ^0.18.1
+  # Для хранения настроек (интервал синхронизации)
+  shared_preferences: ^2.2.1
+  # Дополнение для работы SQLite на Windows/Linux
+  sqflite_common_ffi: ^2.3.0 
+    # Добавлено для сканирования камерой на Android
+  mobile_scanner: ^3.5.5
+    # Добавлено для работы с Supabase
+  supabase_flutter: ^2.3.4
+  share_plus: ^7.2.1   # Для отправки/сохранения файла бэкапа
+  file_picker: ^8.0.0  # Для выбора файла для импорта
+  csv: ^6.0.0
+  permission_handler: ^11.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^2.0.0
+
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false # iOS мы не собираем, поэтому false
+  image_path: "assets/logo.png" # Путь к вашей картинке
+  adaptive_icon_background: "#FFFFFF" # Цвет фона для Android
+  adaptive_icon_foreground: "assets/logo.png"
+  windows:
+    generate: true
+    image_path: "assets/logo.png"
