@@ -7,6 +7,9 @@ import '../services/subscription_service.dart';
 import 'client_form_screen.dart';
 import '../models/subscription_type.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audioplayers/audioplayers.dart';
+import '../utils/date_formatter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -26,6 +29,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final SubscriptionService _subService = SubscriptionService();
 
+  // АУДИОПЛЕЕР:
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   // Переменные
   Client? _currentClient;
   SubscriptionResult? _subResult;
@@ -34,6 +40,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   String? _lastScannedCode;
   DateTime? _lastScanTime;
   bool _hasCameraPermission = false;
+  bool _isSoundOn = true;
 
    List<SubscriptionType> _subTypes = [];
 
@@ -46,7 +53,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
     // Проверяем разрешение при открытии экрана (для Android)
     _checkCameraPermission();
     _loadSubTypes();
+    _loadSoundSetting();
   }
+
+   Future<void> _loadSoundSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isSoundOn = prefs.getBool('sound_enabled') ?? true;
+    });
+   }
 
   Future<void> _loadSubTypes() async {
     final types = await _dbHelper.getAllSubscriptionTypes();
@@ -143,6 +158,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
         // 1. Проверка на повторный вход (сравниваем только дату без времени)
         final today = DateTime.now().toIso8601String().substring(0, 10);
         final isSecondVisit = client.lastVisit != null && client.lastVisit!.substring(0, 10) == today;
+        
+        // ИГРАЕМ ЗВУК УСПЕХА
+        if (_isSoundOn) {
+          _audioPlayer.play(AssetSource('audio/success.mp3'));
+        }
 
         // 2. Обновляем время посещения
         client.lastVisit = DateTime.now().toIso8601String();
@@ -158,6 +178,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
         _subResult = SubscriptionResult(isActive: result.isActive, reason: finalReason, isVip: result.isVip);
       } else {
         _subResult = result;
+
+        // ИГРАЕМ ЗВУК ОШИБКИ
+        if (_isSoundOn) {
+          _audioPlayer.play(AssetSource('audio/error.mp3'));
+        }
+
       }
 
       // Один setState для всех сценариев
@@ -222,17 +248,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Сканер абонементов')),
+      appBar: AppBar(
+        title: const Text('Сканер абонементов'),
+        actions: [ // КНОПКА ВКЛ/ВЫКЛ ЗВУКА (ВНУТРИ APPBAR!)
+          IconButton(
+            icon: Icon(_isSoundOn ? Icons.volume_up : Icons.volume_off),
+            tooltip: _isSoundOn ? 'Выключить звук' : 'Включить звук',
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              setState(() {
+                _isSoundOn = !_isSoundOn;
+              });
+              await prefs.setBool('sound_enabled', _isSoundOn);
+            },
+          ),
+        ],
+      ),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
           if (Platform.isWindows) {
             _hidFocusNode.requestFocus();
           }
-          // Скрываем клавиатуру при клике по пустому месту на Android
           FocusScope.of(context).unfocus();
         },
-        child: SingleChildScrollView( // ДОБАВЛЕНА ПРОКРУТКА
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -390,8 +430,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
           Text('Тел: ${client.phone}', style: const TextStyle(fontSize: 16)),
           const Divider(height: 20),
           Text('Тип: ${_subTypes.firstWhere((t) => t.id == _currentClient!.subType, orElse: () => SubscriptionType(name: 'Удален', updatedAt: '')).name}${_currentClient!.subType != null && _subTypes.firstWhere((t) => t.id == _currentClient!.subType, orElse: () => SubscriptionType(name: '', updatedAt: '')).isVip ? " (VIP)" : ""}'),
-          Text('Период: ${client.startDate} - ${client.endDate}'),
-          Text('Последнее посещение: ${client.lastVisit != null ? client.lastVisit!.substring(0, 10) : "Нет данных"}'),
+          Text('Период: ${DateFormatter.format(client.startDate)} - ${DateFormatter.format(client.endDate)}'),
+          Text('Последнее посещение: ${DateFormatter.format(client.lastVisit)}'),
           const SizedBox(height: 15),
           Container(
             padding: const EdgeInsets.all(8),

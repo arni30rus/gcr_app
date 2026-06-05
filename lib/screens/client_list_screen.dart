@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
+import '../utils/date_formatter.dart';
 
 class ClientListScreen extends StatefulWidget {
   const ClientListScreen({super.key});
@@ -144,7 +145,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             child: Text('${index + 1}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
                           ),
                           title: Text(client.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Тел: ${client.phone}\nТип: $typeName | До: ${client.endDate}'),
+                          subtitle: Text('Тел: ${client.phone}\nТип: $typeName | До: ${DateFormatter.format(client.endDate)}'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -153,7 +154,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text('Посещение:', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                                  Text(client.lastVisit != null ? client.lastVisit!.substring(0, 10) : "Нет"),
+                                  Text(DateFormatter.format(client.lastVisit)),
                                 ],
                               ),
                               // Кнопка удаления
@@ -224,9 +225,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
           client.fullName,
           client.phone,
           typeName,
-          client.startDate,
-          client.endDate,
-          client.lastVisit != null ? client.lastVisit!.substring(0, 10) : "Нет"
+          DateFormatter.format(client.startDate), // Изменено
+          DateFormatter.format(client.endDate),   // Изменено
+          DateFormatter.format(client.lastVisit)
         ]);
       }
 

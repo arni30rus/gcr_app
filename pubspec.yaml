@@ -8,8 +8,9 @@ environment:
 
 dependencies:
   flutter:
- 
-    sdk: flutter
+     sdk: flutter
+  flutter_localizations:
+    sdk: flutter 
 
  # Библиотека для SQLite (локальная база)
   sqflite: ^2.3.0
@@ -18,7 +19,7 @@ dependencies:
   # Для объединения путей (нужна sqflite)
   path: ^1.8.3
   # Для работы с датами (форматирование и т.д.)
-  intl: ^0.18.1
+  intl: ^0.20.2
   # Для хранения настроек (интервал синхронизации)
   shared_preferences: ^2.2.1
   # Дополнение для работы SQLite на Windows/Linux
@@ -31,6 +32,7 @@ dependencies:
   file_picker: ^8.0.0  # Для выбора файла для импорта
   csv: ^6.0.0
   permission_handler: ^11.3.1
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -47,6 +49,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+   - assets/logo.png
+   - assets/audio/
 
 flutter_launcher_icons:
   android: "launcher_icon"

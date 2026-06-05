@@ -14,6 +14,7 @@ import 'database/database_helper.dart';
 import 'screens/about_screen.dart';
 import 'widgets/confirm_delete_dialog.dart';
 import 'screens/dashboard_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,6 +32,18 @@ class MyApp extends StatelessWidget {
         useMaterial3: false,
       ),
       home: const AppLoader(), // Приложение теперь начинается с загрузчика
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ru', 'RU'), // Поддерживаем русский
+        Locale('en', 'US'), // И английский (обязательно для базы)
+      ],
+      locale: const Locale('ru', 'RU'),
+
     );
   }
 }
