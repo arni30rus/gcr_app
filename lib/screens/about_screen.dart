@@ -38,7 +38,7 @@ class AboutScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               Text(
-                '© 2026 г. - arni30rus',
+                '© 2026 - arni30rus',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               SizedBox(height: 40),
