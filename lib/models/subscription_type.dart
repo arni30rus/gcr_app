@@ -11,6 +11,7 @@ class SubscriptionType {
   String updatedAt;
   String? gymId; // ДОБАВЛЕНО ПОЛЕ ID ЗАЛА
   bool isActive;
+  bool isOneTimeVisit;
 
   SubscriptionType({
     this.id,
@@ -23,6 +24,7 @@ class SubscriptionType {
     required this.updatedAt,
     this.gymId, // ДОБАВЛЕНО В КОНСТРУКТОР
     this.isActive = true,
+    this.isOneTimeVisit = false,
   });
 
   factory SubscriptionType.fromMap(Map<String, dynamic> map) {
@@ -38,6 +40,7 @@ class SubscriptionType {
       gymId: map['gym_id'], // ДОБАВЛЕНО ПРИ ЧТЕНИИ ИЗ БД
       // SQLite хранит boolean как 0 или 1
       isActive: (map['is_active'] == 1 || map['is_active'] == true),
+      isOneTimeVisit: (map['is_one_time_visit'] == 1 || map['is_one_time_visit'] == true), 
     );
   }
 
@@ -53,6 +56,7 @@ class SubscriptionType {
       'updated_at': updatedAt,
       'gym_id': gymId, // ДОБАВЛЕНО ПРИ ЗАПИСИ В БД
       'is_active': isActive ? 1 : 0,
+      'is_one_time_visit': isOneTimeVisit ? 1 : 0,
     };
   }
 }

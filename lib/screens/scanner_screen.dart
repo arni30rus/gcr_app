@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../utils/date_formatter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/db_config_service.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -168,6 +169,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
         client.lastVisit = DateTime.now().toIso8601String();
         client.updatedAt = DateTime.now().toIso8601String();
         await _dbHelper.updateClient(client);
+
+        // Записываем факт посещения в таблицу Visits
+        final dbConfigService = DbConfigService();
+        final currentGymId = await dbConfigService.getCachedGymId();
+        await _dbHelper.insertVisit(client.id, currentGymId);
 
         // 3. Формируем текст (с предупреждением или без)
         final finalReason = isSecondVisit

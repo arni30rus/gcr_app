@@ -28,17 +28,17 @@ class DatabaseHelper {
     }
 
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'gcr_database.db');
+    // ИЗМЕНЕНО ИМЯ ФАЙЛА: Это заставит создать БД с нуля по новой схеме!
+    final path = join(dbPath, 'gcr_app_db.db');
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 1, // Версия снова 1, так как это новая БД
       onCreate: _onCreate,
-      // onUpgrade: _onUpgrade,
     );
   }
 
-  // Создание БД с нуля (для новых пользователей)
+  // Создание БД с нуля (для новых пользователей или при смене имени файла)
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE subscription_types (
@@ -51,7 +51,8 @@ class DatabaseHelper {
         is_vip INTEGER NOT NULL,
         updated_at TEXT NOT NULL,
         gym_id TEXT,
-        is_active INTEGER DEFAULT 1
+        is_active INTEGER DEFAULT 1,
+        is_one_time_visit INTEGER DEFAULT 0
       )
     ''');
     
@@ -69,10 +70,16 @@ class DatabaseHelper {
         is_active INTEGER DEFAULT 1
       )
     ''');
-  }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Зарезервировано для будущих обновлений базы данных
+    // НОВАЯ ТАБЛИЦА: История посещений
+    await db.execute('''
+      CREATE TABLE visits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        gym_id TEXT
+      )
+    ''');
   }
 
   // --- CRUD ДЛЯ КЛИЕНТОВ ---
@@ -99,6 +106,11 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => Client.fromMap(maps[i]));
   }
 
+  Future<void> deleteClient(String id) async {
+    final db = await database;
+    await db.delete('clients', where: 'id = ?', whereArgs: [id]);
+  }
+
   // --- CRUD ДЛЯ ТИПОВ АБОНЕМЕНТОВ ---
   Future<List<SubscriptionType>> getAllSubscriptionTypes() async {
     final db = await database;
@@ -121,9 +133,14 @@ class DatabaseHelper {
     await db.delete('subscription_types', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<void> deleteClient(String id) async {
+// --- CRUD ДЛЯ ВИЗИТОВ ---
+  Future<void> insertVisit(String clientId, String? gymId) async {
     final db = await database;
-    await db.delete('clients', where: 'id = ?', whereArgs: [id]);
+    await db.insert('visits', {
+      'client_id': clientId,
+      'created_at': DateTime.now().toIso8601String(),
+      'gym_id': gymId, // Обязательно передаем gymId
+    });
   }
 
   // Физически удаляем из локальной БД всех архивных клиентов и типов абонементов
@@ -144,7 +161,6 @@ class DatabaseHelper {
       final filename = 'GCR_APP_Backup_${now.year}${now.month}${now.day}_${now.hour}${now.minute}.db';
 
       if (Platform.isWindows) {
-        // ДЛЯ WINDOWS: Стандартный диалог "Сохранить как..."
         String? outputPath = await FilePicker.platform.saveFile(
           dialogTitle: 'Сохранить резервную копию базы данных',
           fileName: filename,
@@ -156,7 +172,6 @@ class DatabaseHelper {
           await file.copy(outputPath);
         }
       } else {
-        // ДЛЯ ANDROID: Меню "Поделиться" (Сохранить в файлы, отправить в Telegram и т.д.)
         await Share.shareXFiles(
           [XFile(path)],
           text: 'Бэкап базы данных GCR APP',
@@ -170,64 +185,50 @@ class DatabaseHelper {
 
   // ИМПОРТ: Выбрать файл и заменить им текущую базу
   Future<bool> importDatabase() async {
-    // 1. Получаем путь к текущей БД, пока она открыта
     final db = await database; 
     final String destPath = db.path;
 
-    // 2. Закрываем текущее соединение с БД
     if (_database != null && _database!.isOpen) {
       await _database!.close();
       _database = null;
     }
 
     try {
-      // 3. Небольшая задержка, чтобы ОС освободила файл
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // 4. Открываем диалог выбора файла
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: Platform.isWindows ? FileType.custom : FileType.any, // ИЗМЕНЕНО: Для Android используем FileType.any
-        allowedExtensions: Platform.isWindows ? ['db'] : null,     // ИЗМЕНЕНО: Для Android нет ограничений
+        type: Platform.isWindows ? FileType.custom : FileType.any,
+        allowedExtensions: Platform.isWindows ? ['db'] : null,
       );
 
       if (result != null && result.files.single.path != null) {
         final sourcePath = result.files.single.path!;
-        
-        // 5. Копируем выбранный файл поверх активной базы
         await File(sourcePath).copy(destPath);
-        return true; // Успешно
+        return true;
       }
-      
-      // Если пользователь отменил выбор - возвращаем false
       return false; 
     } catch (e) {
       print('ОШИБКА ИМПОРТА: $e');
       return false;
     } finally {
-      // ВАЖНО: В ЛЮБОМ СЛУЧАЕ (даже при ошибке или отмене) 
-      // переинициализируем базу данных, чтобы приложение не зависло!
       _database = null;
       await database; 
     }
   }
 
-    // Получить статистику для дашборда
+   // Получить общую статистику для дашборда
   Future<Map<String, int>> getStats() async {
     final db = await database;
     final now = DateTime.now();
     
-    // Форматируем даты для SQL запросов
-    final todayStr = now.toIso8601String().substring(0, 10); // YYYY-MM-DD
+    final todayStr = now.toIso8601String().substring(0, 10);
     final weekAgo = now.subtract(const Duration(days: 7));
     final weekAgoStr = weekAgo.toIso8601String();
     final monthAgo = now.subtract(const Duration(days: 30));
     final monthAgoStr = monthAgo.toIso8601String();
-    
-    // Истекает в ближайшие 3 дня
     final threeDaysLater = now.add(const Duration(days: 3));
     final threeDaysLaterStr = threeDaysLater.toIso8601String().substring(0, 10);
 
-    // Вспомогательная функция для безопасного получения числа из запроса
     int getCount(List<Map<String, dynamic>> result) {
       if (result.isNotEmpty && result.first.containsKey('count')) {
         return result.first['count'] as int;
@@ -235,44 +236,104 @@ class DatabaseHelper {
       return 0;
     }
 
-    // 1. Посещений сегодня (last_visit начинается с сегодняшней даты)
+    // 1. ВСЕГО ПОСЕЩЕНИЙ СЕГОДНЯ (из таблицы visits - самая точная цифра)
     int visitsToday = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients WHERE is_active = 1 AND last_visit LIKE ?", ['%$todayStr%']
+      "SELECT COUNT(*) as count FROM visits WHERE created_at LIKE ?", ['%$todayStr%']
     ));
 
-    // 2. Активные абонементы (не в архиве и дата окончания >= сегодня)
+    // 2. АКТИВНЫЕ РЕАЛЬНЫЕ АБОНЕМЕНТЫ (Исключаем разовые)
     int active = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients WHERE is_active = 1 AND end_date >= ?", [todayStr]
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.is_active = 1 AND c.end_date >= ? AND st.is_one_time_visit = 0", [todayStr]
     ));
 
-    // 3. Новых за сегодня (updated_at начинается с сегодняшней даты)
-    int newToday = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients WHERE updated_at LIKE ?", ['%$todayStr%']
-    ));
-
-    // 4. Новых за неделю (updated_at >= 7 дней назад)
-    int newWeek = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients WHERE updated_at >= ?", [weekAgoStr]
-    ));
-
-    // 5. Новых за месяц (updated_at >= 30 дней назад)
-    int newMonth = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients WHERE updated_at >= ?", [monthAgoStr]
-    ));
-
-    // 6. Истекает скоро (end_date от сегодня до +3 дня)
+    // 3. ИСТЕКАЕТ СКОРО (Реальные)
     int expiring = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients WHERE is_active = 1 AND end_date >= ? AND end_date <= ?", [todayStr, threeDaysLaterStr]
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.is_active = 1 AND c.end_date >= ? AND c.end_date <= ? AND st.is_one_time_visit = 0", [todayStr, threeDaysLaterStr]
+    ));
+
+    // 4. НОВЫХ РЕАЛЬНЫХ ЗА СЕГОДНЯ/НЕДЕЛЮ/МЕСЯЦ
+    int newToday = getCount(await db.rawQuery(
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.updated_at LIKE ? AND st.is_one_time_visit = 0", ['%$todayStr%']
+    ));
+    int newWeek = getCount(await db.rawQuery(
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.updated_at >= ? AND st.is_one_time_visit = 0", [weekAgoStr]
+    ));
+    int newMonth = getCount(await db.rawQuery(
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.updated_at >= ? AND st.is_one_time_visit = 0", [monthAgoStr]
+    ));
+
+     // 5. РАЗОВЫЕ ПОСЕЩЕНИЯ ЗА СЕГОДНЯ И МЕСЯЦ (Стало проще, не нужен JOIN clients)
+    int oneTimeToday = getCount(await db.rawQuery(
+      "SELECT COUNT(*) as count FROM visits v JOIN subscription_types st ON v.client_id IN (SELECT id FROM clients WHERE sub_type = st.id) WHERE v.created_at LIKE ? AND st.is_one_time_visit = 1", ['%$todayStr%']
+    ));
+    int oneTimeMonth = getCount(await db.rawQuery(
+      "SELECT COUNT(*) as count FROM visits v JOIN subscription_types st ON v.client_id IN (SELECT id FROM clients WHERE sub_type = st.id) WHERE v.created_at >= ? AND st.is_one_time_visit = 1", [monthAgoStr]
     ));
 
     return {
       'visitsToday': visitsToday,
       'active': active,
+      'expiring': expiring,
       'newToday': newToday,
       'newWeek': newWeek,
       'newMonth': newMonth,
-      'expiring': expiring,
+      'oneTimeToday': oneTimeToday,
+      'oneTimeMonth': oneTimeMonth,
     };
+  }
+
+  // Получить статистику по каждому типу абонемента (для динамических карточек)
+  Future<List<Map<String, dynamic>>> getTypeStats() async {
+    final db = await database;
+    final now = DateTime.now();
+    
+    final todayStr = now.toIso8601String().substring(0, 10);
+    final monthAgo = now.subtract(const Duration(days: 30));
+    final monthAgoStr = monthAgo.toIso8601String();
+
+    // Берем все АКТИВНЫЕ и НЕ РАЗОВЫЕ типы
+    final types = await db.query(
+      'subscription_types',
+      where: 'is_active = ? AND is_one_time_visit = ?',
+      whereArgs: [1, 0],
+    );
+
+    List<Map<String, dynamic>> stats = [];
+
+    for (var type in types) {
+      final typeId = type['id'];
+
+      // Считаем новых клиентов за сегодня по этому типу
+      int newToday = 0;
+      final todayResult = await db.rawQuery(
+        "SELECT COUNT(*) as count FROM clients WHERE sub_type = ? AND updated_at LIKE ?",
+        [typeId, '%$todayStr%']
+      );
+      if (todayResult.isNotEmpty) newToday = todayResult.first['count'] as int;
+
+      // Считаем новых клиентов за месяц по этому типу
+      int newMonth = 0;
+      final monthResult = await db.rawQuery(
+        "SELECT COUNT(*) as count FROM clients WHERE sub_type = ? AND updated_at >= ?",
+        [typeId, monthAgoStr]
+      );
+      if (monthResult.isNotEmpty) newMonth = monthResult.first['count'] as int;
+
+      stats.add({
+        'name': type['name'],
+        'newToday': newToday,
+        'newMonth': newMonth,
+        'isVip': (type['is_vip'] == 1 || type['is_vip'] == true),
+      });
+    }
+
+    return stats;
+  }
+
+  // Очистить таблицу визитов (освободить место)
+  Future<void> clearVisits() async {
+    final db = await database;
+    await db.delete('visits');
   }
 
 }

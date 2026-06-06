@@ -37,6 +37,7 @@ class _SubscriptionTypesScreenState extends State<SubscriptionTypesScreen> {
     String allowedDays = type?.allowedDays ?? '';
     bool isVip = type?.isVip ?? false;
     bool isSaving = false; // Переменная для блокировки кнопки
+     bool isOneTimeVisit = type?.isOneTimeVisit ?? false; 
 
     showDialog(
       context: context,
@@ -71,6 +72,12 @@ class _SubscriptionTypesScreenState extends State<SubscriptionTypesScreen> {
                       value: isVip, 
                       onChanged: (v) => setStateDialog(() => isVip = v),
                     ),
+                     SwitchListTile(
+                      title: const Text('Разовое посещение'), 
+                      subtitle: const Text('Не учитывается в статистике абонементов'),
+                      value: isOneTimeVisit, 
+                      onChanged: (v) => setStateDialog(() => isOneTimeVisit = v),
+                    ),
                   ],
                 ),
               ),
@@ -97,6 +104,7 @@ class _SubscriptionTypesScreenState extends State<SubscriptionTypesScreen> {
                         isUnlimitedTime: isUnlimited,
                         allowedDays: allowedDays,
                         isVip: isVip,
+                        isOneTimeVisit: isOneTimeVisit,
                         updatedAt: DateTime.now().toIso8601String(),
                         gymId: gymId,
                       );

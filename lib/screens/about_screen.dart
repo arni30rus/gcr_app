@@ -34,11 +34,11 @@ class AboutScreen extends StatelessWidget {
               
               // Версия и дата
               Text(
-                'Версия: 1.0.0',
+                'Версия: 1.0.2',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               Text(
-                'Дата разработки: Май 2026 г.',
+                '© 2026 г. - arni30rus',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               SizedBox(height: 40),
@@ -61,7 +61,7 @@ class AboutScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.email, color: Colors.blue),
                     SizedBox(width: 8),
-                    Text('xokcod4@gmail.com'),
+                    Text('E-mail: xokcod4@gmail.com'),
                   ],
                 ),
               ),
@@ -72,7 +72,7 @@ class AboutScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.chat, color: Colors.blue),
                     SizedBox(width: 8),
-                    Text('TG: @arni30rus'),
+                    Text('Telegram: @arni30rus'),
                   ],
                 ),
               ),
