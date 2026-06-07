@@ -34,7 +34,7 @@ class AboutScreen extends StatelessWidget {
               
               // Версия и дата
               Text(
-                'Версия: 1.0.2',
+                'Версия: 1.0.3',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               Text(

@@ -331,8 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Divider(height: 20),
                     
                                     // КНОПКА ОЧИСТКИ ЛОКАЛЬНОГО АРХИВА
-                                    // КНОПКА ОЧИСТКИ ЛОКАЛЬНОГО АРХИВА
-                  ListTile(
+                   ListTile(
                     leading: const Icon(Icons.cleaning_services_outlined, color: Colors.grey),
                     title: const Text('Очистить локальный архив'),
                     subtitle: const Text('Удалить скрытых клиентов и абонементы из памяти'), // Обновили текст
@@ -355,6 +354,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                   const Divider(height: 20),
+
+ // КНОПКА ПОЛНОГО СБРОСА БАЗЫ (ДЛЯ ЛОКАЛЬНОГО РЕЖИМА)
+                  ListTile(
+                    leading: const Icon(Icons.restore, color: Colors.deepOrange),
+                    title: const Text('Сбросить все данные'),
+                    subtitle: const Text('Удалить всех клиентов и абонементы (начать с нуля)'),
+                    onTap: () async {
+                      Navigator.pop(dialogContext);
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => ConfirmDeleteDialog(
+                          itemName: 'ВСЕ ДАННЫЕ (база будет пересоздана)',
+                        ),
+                      );
+                      if (confirmed == true) {
+                        final dbHelper = DatabaseHelper();
+                        await dbHelper.resetDatabase();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('База данных сброшена! Перезапустите приложение.')),
+                          );
+                          Future.delayed(const Duration(seconds: 1), () => exit(0));
+                        }
+                      }
+                    },
+                  ),
 
 // ЭКСПОРТ БАЗЫ
                   ListTile(
@@ -413,29 +438,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: const Text('Выйти / Сменить базу данных'),
                     subtitle: const Text('Вернуться на экран выбора подключения'),
                     onTap: () async {
-                      Navigator.pop(dialogContext); // Закрываем диалог настроек
+                      Navigator.pop(dialogContext); 
                       
-                      try {
-                        // 1. Выходим из аккаунта Supabase (если были в Основном облаке)
-                        await Supabase.instance.client.auth.signOut();
-                      } catch (e) {
-                        // Игнорируем ошибку, если сессии нет (например, при "Своей базе")
-                      }
+                      // ДОБАВЛЕНО: Окно подтверждения перед выходом
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => ConfirmDeleteDialog(
+                          itemName: 'текущую сессию и переключить режим',
+                        ),
+                      );
+                      
+                      if (confirmed == true) {
+                        try {
+                          await Supabase.instance.client.auth.signOut();
+                        } catch (e) {}
 
-                      // 2. Очищаем кэш зала и настройки подключения
-                      await _dbConfigService.clearCachedGymId();
-                      await _dbConfigService.clearConfig();
+                        await _dbConfigService.clearCachedGymId();
+                        await _dbConfigService.clearConfig();
 
-                      // 3. Перезапускаем приложение
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Вы вышли. Перезапустите приложение.')),
-                        );
-                        Future.delayed(const Duration(seconds: 1), () => exit(0));
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Вы вышли. Перезапустите приложение.')),
+                          );
+                          Future.delayed(const Duration(seconds: 1), () => exit(0));
+                        }
                       }
                     },
                   ),
-
 
                   ],
                 ),

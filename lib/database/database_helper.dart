@@ -336,4 +336,20 @@ class DatabaseHelper {
     await db.delete('visits');
   }
 
+  // Полностью удаляем файл базы данных для чистого старта
+  Future<void> resetDatabase() async {
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+      _database = null;
+    }
+    
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'gcr_database_v3.db');
+    final file = File(path);
+    
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+
 }
