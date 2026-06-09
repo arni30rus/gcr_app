@@ -89,6 +89,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
           lastVisit: widget.client?.lastVisit,
           updatedAt: now,
           gymId: gymId,
+          createdAt: widget.client?.createdAt ?? now, 
         );
 
         if (widget.client == null) {

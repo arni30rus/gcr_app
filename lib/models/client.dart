@@ -10,7 +10,8 @@ class Client {
   String? lastVisit; // Может быть null, если еще не посещал
   String updatedAt;  // Дата последнего изменения (для синхронизации)
   String? gymId; // id зала
-  bool isActive;
+  bool isActive;  
+  String createdAt;
 
   Client({
     required this.id,
@@ -23,6 +24,7 @@ class Client {
     required this.updatedAt,
     this.gymId,
     this.isActive = true,
+    required this.createdAt,
   });
 
   // Метод для преобразования из Map (когда читаем из SQLite)
@@ -39,6 +41,7 @@ class Client {
       gymId: map['gym_id'],
        // SQLite хранит boolean как 0 или 1
       isActive: (map['is_active'] == 1 || map['is_active'] == true), 
+      createdAt: map['created_at'] ?? DateTime.now().toIso8601String(), 
     );
   }
 
@@ -55,6 +58,7 @@ class Client {
       'updated_at': updatedAt,
       'gym_id': gymId,
       'is_active': isActive ? 1 : 0,
+      'created_at': createdAt,
     };
   }
 }

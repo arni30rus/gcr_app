@@ -71,7 +71,7 @@ CREATE TABLE subscription_types (
   is_one_time_visit BOOLEAN DEFAULT false
 );
 
--- 4. Таблица Клиентов
+-- 4. Таблица Клиентов (ОБНОВЛЕНО: добавлено created_at)
 CREATE TABLE clients (
   id TEXT PRIMARY KEY,
   full_name TEXT NOT NULL,
@@ -82,10 +82,11 @@ CREATE TABLE clients (
   last_visit TEXT,
   updated_at TEXT NOT NULL,
   gym_id UUID REFERENCES gyms(id),
-  is_active BOOLEAN DEFAULT true
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. Таблица истории посещений (для статистики)
+-- 5. Таблица истории посещений
 CREATE TABLE visits (
   id BIGSERIAL PRIMARY KEY,
   client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
@@ -93,19 +94,29 @@ CREATE TABLE visits (
   gym_id UUID REFERENCES gyms(id)
 );
 
--- 6. Включаем безопасность (RLS)
+-- 6. Таблица истории продлений (НОВАЯ)
+CREATE TABLE renewals (
+  id BIGSERIAL PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  gym_id UUID REFERENCES gyms(id)
+);
+
+-- 7. Включаем безопасность (RLS)
 ALTER TABLE gyms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_gyms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE visits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE renewals ENABLE ROW LEVEL SECURITY;
 
--- 7. Правила доступа (Пользователь видит только свой зал)
+-- 8. Правила доступа (Пользователь видит только свой зал)
 CREATE POLICY "Users can view their gyms" ON gyms FOR SELECT USING (id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 CREATE POLICY "Users can view their gym links" ON user_gyms FOR SELECT USING (user_id = auth.uid());
 CREATE POLICY "Users can manage sub types in their gym" ON subscription_types FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 CREATE POLICY "Users can manage clients in their gym" ON clients FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 CREATE POLICY "Users can manage visits in their gym" ON visits FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
+CREATE POLICY "Users can manage renewals in their gym" ON renewals FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 ''',
                 style: TextStyle(fontFamily: 'Courier', fontSize: 12, color: Colors.grey[900]),
               ),

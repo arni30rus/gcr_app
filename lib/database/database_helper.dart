@@ -29,7 +29,7 @@ class DatabaseHelper {
 
     final dbPath = await getDatabasesPath();
     // ИЗМЕНЕНО ИМЯ ФАЙЛА: Это заставит создать БД с нуля по новой схеме!
-    final path = join(dbPath, 'gcr_app_db.db');
+    final path = join(dbPath, 'gcr_app_db_v4.db');
 
     return await openDatabase(
       path,
@@ -67,7 +67,8 @@ class DatabaseHelper {
         last_visit TEXT,
         updated_at TEXT NOT NULL,
         gym_id TEXT,
-        is_active INTEGER DEFAULT 1
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT NOT NULL
       )
     ''');
 
@@ -80,7 +81,18 @@ class DatabaseHelper {
         gym_id TEXT
       )
     ''');
+
+// НОВАЯ ТАБЛИЦА: История продлений
+    await db.execute('''
+      CREATE TABLE renewals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        gym_id TEXT
+      )
+  ''');
   }
+
 
   // --- CRUD ДЛЯ КЛИЕНТОВ ---
   Future<void> insertClient(Client client) async {
@@ -140,6 +152,16 @@ class DatabaseHelper {
       'client_id': clientId,
       'created_at': DateTime.now().toIso8601String(),
       'gym_id': gymId, // Обязательно передаем gymId
+    });
+  }
+
+  // --- CRUD ДЛЯ ПРОДЛЕНИЙ ---
+  Future<void> insertRenewal(String clientId, String? gymId) async {
+    final db = await database;
+    await db.insert('renewals', {
+      'client_id': clientId,
+      'created_at': DateTime.now().toIso8601String(),
+      'gym_id': gymId,
     });
   }
 
@@ -251,18 +273,26 @@ class DatabaseHelper {
       "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.is_active = 1 AND c.end_date >= ? AND c.end_date <= ? AND st.is_one_time_visit = 0", [todayStr, threeDaysLaterStr]
     ));
 
-    // 4. НОВЫХ РЕАЛЬНЫХ ЗА СЕГОДНЯ/НЕДЕЛЮ/МЕСЯЦ
+    // 4. НОВЫХ РЕАЛЬНЫХ ЗА СЕГОДНЯ/НЕДЕЛЮ/МЕСЯЦ (ИСПРАВЛЕНО: используем created_at)
     int newToday = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.updated_at LIKE ? AND st.is_one_time_visit = 0", ['%$todayStr%']
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.created_at LIKE ? AND st.is_one_time_visit = 0", ['%$todayStr%']
     ));
     int newWeek = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.updated_at >= ? AND st.is_one_time_visit = 0", [weekAgoStr]
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.created_at >= ? AND st.is_one_time_visit = 0", [weekAgoStr]
     ));
     int newMonth = getCount(await db.rawQuery(
-      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.updated_at >= ? AND st.is_one_time_visit = 0", [monthAgoStr]
+      "SELECT COUNT(*) as count FROM clients c JOIN subscription_types st ON c.sub_type = st.id WHERE c.created_at >= ? AND st.is_one_time_visit = 0", [monthAgoStr]
     ));
 
-     // 5. РАЗОВЫЕ ПОСЕЩЕНИЯ ЗА СЕГОДНЯ И МЕСЯЦ (Стало проще, не нужен JOIN clients)
+    // 5. ПРОДЛЕНО СЕГОДНЯ И ЗА МЕСЯЦ (НОВОЕ)
+    int renewedToday = getCount(await db.rawQuery(
+      "SELECT COUNT(*) as count FROM renewals WHERE created_at LIKE ?", ['%$todayStr%']
+    ));
+    int renewedMonth = getCount(await db.rawQuery(
+      "SELECT COUNT(*) as count FROM renewals WHERE created_at >= ?", [monthAgoStr]
+    ));
+
+     // 6. РАЗОВЫЕ ПОСЕЩЕНИЯ ЗА СЕГОДНЯ И МЕСЯЦ (Стало проще, не нужен JOIN clients)
     int oneTimeToday = getCount(await db.rawQuery(
       "SELECT COUNT(*) as count FROM visits v JOIN subscription_types st ON v.client_id IN (SELECT id FROM clients WHERE sub_type = st.id) WHERE v.created_at LIKE ? AND st.is_one_time_visit = 1", ['%$todayStr%']
     ));
@@ -277,6 +307,8 @@ class DatabaseHelper {
       'newToday': newToday,
       'newWeek': newWeek,
       'newMonth': newMonth,
+      'renewedToday': renewedToday,
+      'renewedMonth': renewedMonth,
       'oneTimeToday': oneTimeToday,
       'oneTimeMonth': oneTimeMonth,
     };
@@ -344,7 +376,7 @@ class DatabaseHelper {
     }
     
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'gcr_database_v3.db');
+    final path = join(dbPath, 'gcr_app_db_v4.db');
     final file = File(path);
     
     if (await file.exists()) {

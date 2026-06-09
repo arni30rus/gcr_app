@@ -82,6 +82,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _buildStatCard(title: 'Новых за неделю', value: _stats['newWeek'] ?? 0, icon: Icons.date_range, color: Colors.indigo),
                       _buildStatCard(title: 'Новых за месяц', value: _stats['newMonth'] ?? 0, icon: Icons.calendar_today, color: Colors.teal),
                       _buildStatCard(title: 'Истекает через 3 дня', value: _stats['expiring'] ?? 0, icon: Icons.warning, color: Colors.orange),
+                       _buildStatCard(title: 'Продлено сегодня', value: _stats['renewedToday'] ?? 0, icon: Icons.autorenew, color: Colors.lightGreen),
+                      _buildStatCard(title: 'Продлено за месяц', value: _stats['renewedMonth'] ?? 0, icon: Icons.update, color: Colors.greenAccent),
                       // Разовые посещения выделяем отдельно
                       _buildStatCard(title: 'Разовых сегодня', value: _stats['oneTimeToday'] ?? 0, icon: Icons.money, color: Colors.redAccent),
                       _buildStatCard(title: 'Разовых за месяц', value: _stats['oneTimeMonth'] ?? 0, icon: Icons.attach_money, color: Colors.pink),

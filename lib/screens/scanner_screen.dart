@@ -42,6 +42,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   DateTime? _lastScanTime;
   bool _hasCameraPermission = false;
   bool _isSoundOn = true;
+   bool _isRenewing = false; 
 
    List<SubscriptionType> _subTypes = [];
 
@@ -211,6 +212,49 @@ class _ScannerScreenState extends State<ScannerScreen> {
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) _hidFocusNode.requestFocus();
       });
+    }
+  }
+
+  Future<void> _renewClient(Client client) async {
+    // Защита от двойного клика
+    if (_isRenewing) return; 
+    setState(() => _isRenewing = true);
+
+    try {
+      final now = DateTime.now();
+      final newEndDate = now.add(const Duration(days: 30));
+      
+      // Меняем ТОЛЬКО дату окончания
+      client.endDate = newEndDate.toIso8601String().substring(0, 10);
+      client.updatedAt = now.toIso8601String(); // Обязательно для синхронизации
+      
+      await _dbHelper.updateClient(client);
+
+      // Записываем факт продления
+      final dbConfigService = DbConfigService();
+      final currentGymId = await dbConfigService.getCachedGymId();
+      await _dbHelper.insertRenewal(client.id, currentGymId);
+
+      // СБРАСЫВАЕМ КУЛДАУН СКАНЕРА!
+      // Без этого _processBarcode подумает, что это повторное сканирование той же карты и проигнорирует вызов.
+      _lastScannedCode = null;
+      _lastScanTime = null;
+
+      // Вызываем полный цикл проверки (как при обычном сканировании)
+      // Он сам обновит интерфейс, проверит абонемент и запишет посещение (visit)
+      await _processBarcode(client.id);
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка продления: $e')),
+        );
+      }
+    } finally {
+      // В любом случае снимаем блокировку кнопки
+      if (mounted) {
+        setState(() => _isRenewing = false);
+      }
     }
   }
 
@@ -451,6 +495,29 @@ class _ScannerScreenState extends State<ScannerScreen> {
               ),
             ),
           ),
+          // КНОПКА ПРОДЛЕНИЯ (появляется только если абонемент не активен)
+         if (!result.isActive) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                // Блокируем кнопку, если идет процесс продления
+                onPressed: _isRenewing ? null : () => _renewClient(_currentClient!),
+                icon: _isRenewing 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.update),
+                label: Text(
+                  _isRenewing ? 'ПРОДЛЕНИЕ...' : 'ПРОДЛИТЬ НА 30 ДНЕЙ', 
+                  style: const TextStyle(fontSize: 18)
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
