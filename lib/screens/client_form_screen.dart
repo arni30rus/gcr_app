@@ -27,6 +27,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   late TextEditingController _endDateController;
 
   List<SubscriptionType> _subTypes = [];
+  bool _wasRenewed = false;
 
   @override
   void initState() {
@@ -96,6 +97,12 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
           await dbHelper.insertClient(client);
         } else {
           await dbHelper.updateClient(client);
+         // ДОБАВЛЕНО: Если нажали кнопку продления, фиксируем это в статистике
+          if (_wasRenewed) {
+            final syncService = SyncService();
+            final gymId = await syncService.getCurrentUserGymId();
+            await dbHelper.insertRenewal(client.id, gymId);
+          }
         }
 
         if (mounted) {
@@ -183,6 +190,32 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                 ],
               ),
               const SizedBox(height: 32),
+
+// НОВАЯ КНОПКА ПРОДЛЕНИЯ (видна только при редактировании)
+              if (widget.client != null) ...[
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.update, color: Colors.green),
+                  label: const Text('ПРОДЛИТЬ НА 30 ДНЕЙ (от сегодня)', style: TextStyle(color: Colors.green, fontSize: 16)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.all(16),
+                    side: const BorderSide(color: Colors.green),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      // Меняем дату окончания на текущую + 30 дней
+                      final now = DateTime.now();
+                      final newEndDate = now.add(const Duration(days: 30));
+                      _endDateController.text = newEndDate.toIso8601String().substring(0, 10);
+                      _wasRenewed = true; // Фиксируем, что было продление
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Дата окончания обновлена. Нажмите "Сохранить"!')),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+
               ElevatedButton(
                 onPressed: _saveClient,
                 style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),

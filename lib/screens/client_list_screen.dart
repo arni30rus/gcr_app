@@ -144,68 +144,12 @@ class _ClientListScreenState extends State<ClientListScreen> {
                       final int clientIndex = index + 1;
                       final double fontSize = clientIndex > 9999 ? 9.0 : (clientIndex > 999 ? 10.5 : 14.0);
 
-                      return Card(
+                        return Card(
+                        elevation: 3,
                         color: cardColor,
                         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        child: ListTile(
-                          leading: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              '$clientIndex', 
-                              style: TextStyle(
-                                color: Colors.blue, 
-                                fontWeight: FontWeight.bold,
-                                fontSize: fontSize,
-                              ),
-                            ),
-                          ),
-                          // ИСПРАВЛЕНО: обычный перенос строки
-                          title: Text(
-                            client.fullName, 
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0), // Фиксированный читаемый размер
-                            maxLines: 2, // Разрешаем ровно 2 строки
-                            overflow: TextOverflow.ellipsis, // Если не влезло - многоточие в конце
-                          ),
-                          subtitle: Text(
-                            'Тел: ${client.phone}\nТип: $typeName | До: ${DateFormatter.format(client.endDate)}',
-                            maxLines: 2, 
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12.0), // Чуть меньше шрифт для деталей
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text('Посещение:', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                                  Text(DateFormatter.format(client.lastVisit), style: const TextStyle(fontSize: 12.0)),
-                                ],
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () async {
-                                  final confirmed = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => ConfirmDeleteDialog(itemName: client.fullName),
-                                  );
-                                  if (confirmed == true) {
-                                    client.isActive = false;
-                                    client.updatedAt = DateTime.now().toIso8601String();
-                                    await _dbHelper.updateClient(client);
-                                    _loadData();
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
+                        // ДОБАВЛЯЕМ INKWELL ДЛЯ ОБРАБОТКИ НАЖАТИЙ НА ВСЮ КАРТОЧКУ
+                        child: InkWell(
                           onTap: () async {
                             final result = await Navigator.push(
                               context,
@@ -215,6 +159,86 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             );
                             if (result == true) _loadData();
                           },
+                          borderRadius: BorderRadius.circular(12), // Скругление эффекта волны
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: Row(
+                              children: [
+                                // 1. Квадрат с номером
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade100,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '$clientIndex', 
+                                    style: TextStyle(
+                                      color: Colors.blue, 
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: fontSize,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16), 
+                                
+                                // 2. Блок с ФИО и деталями
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        client.fullName, 
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0), 
+                                        maxLines: 2, 
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        'Тел: ${client.phone}\nТип: $typeName | До: ${DateFormatter.format(client.endDate)}',
+                                        maxLines: 2, 
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 12.0),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                
+                                // 3. Блок справа (посещение и удаление)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text('Посещение:', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                                        Text(DateFormatter.format(client.lastVisit), style: const TextStyle(fontSize: 12.0)),
+                                      ],
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () async {
+                                        final confirmed = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => ConfirmDeleteDialog(itemName: client.fullName),
+                                        );
+                                        if (confirmed == true) {
+                                          client.isActive = false;
+                                          client.updatedAt = DateTime.now().toIso8601String();
+                                          await _dbHelper.updateClient(client);
+                                          _loadData();
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },
