@@ -37,7 +37,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Client? _currentClient;
   SubscriptionResult? _subResult;
   bool _isLoading = false;
-  String _scannedCode = '';
   String? _lastScannedCode;
   DateTime? _lastScanTime;
   bool _hasCameraPermission = false;
@@ -120,7 +119,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     setState(() {
       _isLoading = true;
-      _scannedCode = code;
       _currentClient = null;
       _subResult = null;
     });
@@ -456,20 +454,50 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 
-
   // Виджет карточки клиента с результатом
   Widget _buildClientCard() {
     final client = _currentClient!;
     final result = _subResult!;
 
+    // ИЩЕМ ТИП АБОНЕМЕНТА ОДИН РАЗ ЗДЕСЬ:
+    final clientSubType = _subTypes.firstWhere(
+      (t) => t.id == client.subType,
+      orElse: () => SubscriptionType(name: 'Удален', updatedAt: ''), // Запасной вариант
+    );
+
+    // Формируем красивую строку для типа
+    String typeText = clientSubType.name;
+    if (clientSubType.isVip) {
+      typeText += ' (VIP)';
+    }
+
+// === НОВАЯ ЛОГИКА ЦВЕТОВ ===
+    Color cardBackgroundColor;
+    Color cardBorderColor;
+
+    if (!result.isActive) {
+      // Если истек — всегда красный
+      cardBackgroundColor = Colors.red[50]!;
+      cardBorderColor = Colors.red;
+    } else if (result.isVip) {
+      // Если активен и VIP — желтый/золотой
+      cardBackgroundColor = Colors.yellow[50]!;
+      cardBorderColor = Colors.amber; // Яркая золотистая рамка
+    } else {
+      // Если активен обычный — зеленый
+      cardBackgroundColor = Colors.green[50]!;
+      cardBorderColor = Colors.green;
+    }
+    // ============================
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: result.isActive ? Colors.green[50] : Colors.red[50],
+        color: cardBackgroundColor, // Используем новые цвета
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: result.isActive ? Colors.green : Colors.red,
+          color: cardBorderColor,    // Используем новые цвета
           width: 2,
         ),
       ),
@@ -479,13 +507,16 @@ class _ScannerScreenState extends State<ScannerScreen> {
           Text(client.fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           Text('Тел: ${client.phone}', style: const TextStyle(fontSize: 16)),
           const Divider(height: 20),
-          Text('Тип: ${_subTypes.firstWhere((t) => t.id == _currentClient!.subType, orElse: () => SubscriptionType(name: 'Удален', updatedAt: '')).name}${_currentClient!.subType != null && _subTypes.firstWhere((t) => t.id == _currentClient!.subType, orElse: () => SubscriptionType(name: '', updatedAt: '')).isVip ? " (VIP)" : ""}'),
+          Text('Тип: $typeText'),
           Text('Период: ${DateFormatter.format(client.startDate)} - ${DateFormatter.format(client.endDate)}'),
           Text('Последнее посещение: ${DateFormatter.format(client.lastVisit)}'),
+          
           const SizedBox(height: 15),
           Container(
             padding: const EdgeInsets.all(8),
-            color: result.isActive ? Colors.green : Colors.red,
+            width: double.infinity, 
+            // Внутренний блок статуса остается зеленым/красным независимо от VIP
+            color: result.isActive ? Colors.green : Colors.red, 
             child: Text(
               'СТАТУС: ${result.isActive ? "АКТИВЕН" : "НЕ АКТИВЕН"}\n${result.reason}',
               style: const TextStyle(
@@ -495,13 +526,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
               ),
             ),
           ),
-          // КНОПКА ПРОДЛЕНИЯ (появляется только если абонемент не активен)
-         if (!result.isActive) ...[
+          
+          // КНОПКА ПРОДЛЕНИЯ
+          if (!result.isActive) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                // Блокируем кнопку, если идет процесс продления
                 onPressed: _isRenewing ? null : () => _renewClient(_currentClient!),
                 icon: _isRenewing 
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -522,5 +553,4 @@ class _ScannerScreenState extends State<ScannerScreen> {
       ),
     );
   }
-
 }

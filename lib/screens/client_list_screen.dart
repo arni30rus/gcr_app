@@ -23,7 +23,11 @@ class _ClientListScreenState extends State<ClientListScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   List<Client> _allClients = [];
   List<Client> _filteredClients = [];
-  List<SubscriptionType> _subTypes = [];
+  
+  // ОПТИМИЗАЦИЯ: Используем Map вместо List для типов абонементов
+  // Поиск в Map происходит мгновенно (O(1)), в отличие от firstWhere (O(N))
+  Map<int, SubscriptionType> _subTypesMap = {}; 
+  
   String _searchQuery = '';
 
   @override
@@ -35,15 +39,18 @@ class _ClientListScreenState extends State<ClientListScreen> {
   Future<void> _loadData() async {
     final clients = await _dbHelper.getAllClients();
     final types = await _dbHelper.getAllSubscriptionTypes();
+    
+    // Преобразуем список типов в словарь (Map), где ключ - это ID типа
+    final typesMap = {for (var t in types) t.id!: t};
+
     setState(() {
-      _subTypes = types;
+      _subTypesMap = typesMap;
       _allClients = clients;
       _applyFilter();
     });
   }
 
-    void _applyFilter() {
-    // Сначала фильтруем только АКТИВНЫХ клиентов
+  void _applyFilter() {
     List<Client> activeClients = _allClients.where((c) => c.isActive).toList();
 
     if (_searchQuery.isEmpty) {
@@ -58,26 +65,21 @@ class _ClientListScreenState extends State<ClientListScreen> {
     }
   }
 
-  // Логика определения цвета карточки
   Color? _getCardColor(Client client) {
-    // 1. Проверяем, истек ли срок (Красный приоритет)
     DateTime now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);
     DateTime endDate = DateTime.parse(client.endDate);
     if (today.isAfter(endDate)) {
-      return Colors.red[100]; // Истекший абонемент
+      return Colors.red[100]; 
     }
 
-    // 2. Проверяем VIP статус (Желтый)
-    SubscriptionType? subType = _subTypes.firstWhere(
-      (t) => t.id == client.subType,
-            orElse: () => SubscriptionType(name: 'Неизвестно', updatedAt: DateTime.now().toIso8601String()),
-    );
-    if (subType.isVip) {
-      return Colors.yellow[100]; // VIP клиент
+    // ОПТИМИЗАЦИЯ: Берем тип из Map мгновенно
+    final subType = _subTypesMap[client.subType];
+    if (subType != null && subType.isVip) {
+      return Colors.yellow[100]; 
     }
 
-    return null; // Обычный клиент (белый)
+    return null; 
   }
 
   @override
@@ -86,9 +88,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
       appBar: AppBar(
         title: const Text('Список клиентов'),
         actions: [
-          // КНОПКА ЭКСПОРТА В CSV
           IconButton(
-            icon: const Icon(Icons.download), // Иконка скачивания
+            icon: const Icon(Icons.download),
             onPressed: _exportToCSV,
             tooltip: 'Экспорт в Excel/CSV',
           ),
@@ -127,25 +128,56 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 ? const Center(child: Text('Клиенты не найдены'))
                 : ListView.builder(
                     itemCount: _filteredClients.length,
+                    // ОПТИМИЗАЦИЯ: Фиксированная высота элемента. 
+                    // ListView не будет тратить ресурсы на вычисление высоты каждой карточки!
+                    // Если текст обрезается, увеличь это значение (например, до 95.0)
+                    itemExtent: 80.0, 
                     itemBuilder: (context, index) {
                       final client = _filteredClients[index];
                       
-                      // Находим имя типа абонемента
-                      String typeName = _subTypes.firstWhere(
-                        (t) => t.id == client.subType,
-                           orElse: () => SubscriptionType(name: 'Удален', updatedAt: DateTime.now().toIso8601String()),
-                      ).name;
+                      // ОПТИМИЗАЦИЯ: Мгновенный поиск имени типа в Map
+                      String typeName = _subTypesMap[client.subType]?.name ?? 'Удален';
+
+                      // Вычисляем цвет один раз
+                      final cardColor = _getCardColor(client);
+                      // Вычисляем размер шрифта для номера
+                      final int clientIndex = index + 1;
+                      final double fontSize = clientIndex > 9999 ? 9.0 : (clientIndex > 999 ? 10.5 : 14.0);
 
                       return Card(
-                        color: _getCardColor(client), // Применяем цвет
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        color: cardColor,
+                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.blue.shade100,
-                            child: Text('${index + 1}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                          leading: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$clientIndex', 
+                              style: TextStyle(
+                                color: Colors.blue, 
+                                fontWeight: FontWeight.bold,
+                                fontSize: fontSize,
+                              ),
+                            ),
                           ),
-                          title: Text(client.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Тел: ${client.phone}\nТип: $typeName | До: ${DateFormatter.format(client.endDate)}'),
+                          // ИСПРАВЛЕНО: обычный перенос строки
+                          title: Text(
+                            client.fullName, 
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0), // Фиксированный читаемый размер
+                            maxLines: 2, // Разрешаем ровно 2 строки
+                            overflow: TextOverflow.ellipsis, // Если не влезло - многоточие в конце
+                          ),
+                          subtitle: Text(
+                            'Тел: ${client.phone}\nТип: $typeName | До: ${DateFormatter.format(client.endDate)}',
+                            maxLines: 2, 
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12.0), // Чуть меньше шрифт для деталей
+                          ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -154,10 +186,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text('Посещение:', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                                  Text(DateFormatter.format(client.lastVisit)),
+                                  Text(DateFormatter.format(client.lastVisit), style: const TextStyle(fontSize: 12.0)),
                                 ],
                               ),
-                              // Кнопка удаления
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                                 onPressed: () async {
@@ -166,11 +197,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
                                     builder: (context) => ConfirmDeleteDialog(itemName: client.fullName),
                                   );
                                   if (confirmed == true) {
-                                  // МЯГКОЕ УДАЛЕНИЕ: меняем статус и дату обновления
                                     client.isActive = false;
                                     client.updatedAt = DateTime.now().toIso8601String();
-                                   await _dbHelper.updateClient(client);
-                                   _loadData();
+                                    await _dbHelper.updateClient(client);
+                                    _loadData();
                                   }
                                 },
                               ),
@@ -195,9 +225,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
     );
   }
 
-    Future<void> _exportToCSV() async {
+  Future<void> _exportToCSV() async {
     try {
-      // 1. Берем только активных клиентов для экспорта
       List<Client> clientsToExport = _allClients.where((c) => c.isActive).toList();
 
       if (clientsToExport.isEmpty) {
@@ -207,43 +236,33 @@ class _ClientListScreenState extends State<ClientListScreen> {
         return;
       }
 
-      // 2. Формируем строки таблицы
       List<List<dynamic>> rows = [];
-      
-      // Заголовки колонок
       rows.add(["Штрихкод", "ФИО", "Телефон", "Тип абонемента", "Начало", "Окончание", "Последнее посещение"]);
       
-      // Данные клиентов
       for (var client in clientsToExport) {
-        String typeName = _subTypes.firstWhere(
-          (t) => t.id == client.subType,
-          orElse: () => SubscriptionType(name: 'Удален', updatedAt: ''),
-        ).name;
+        // ОПТИМИЗАЦИЯ: тоже используем Map здесь
+        String typeName = _subTypesMap[client.subType]?.name ?? 'Удален';
         
         rows.add([
           client.id,
           client.fullName,
           client.phone,
           typeName,
-          DateFormatter.format(client.startDate), // Изменено
-          DateFormatter.format(client.endDate),   // Изменено
+          DateFormatter.format(client.startDate),
+          DateFormatter.format(client.endDate),   
           DateFormatter.format(client.lastVisit)
         ]);
       }
 
-      // 3. Конвертируем в CSV (ИСПОЛЬЗУЕМ ТОЧКУ С ЗАПЯТОЙ ДЛЯ EXCEL)
       String csvData = const ListToCsvConverter(fieldDelimiter: ';').convert(rows);
 
-      // 4. Формируем байты с BOM (Маркер кодировки UTF-8)
-      List<int> csvBytes = [0xEF, 0xBB, 0xBF]; // Сам BOM
-      csvBytes.addAll(utf8.encode(csvData)); // Добавляем сами данные в UTF-8
+      List<int> csvBytes = [0xEF, 0xBB, 0xBF]; 
+      csvBytes.addAll(utf8.encode(csvData)); 
 
       final now = DateTime.now();
       final filename = 'Clients_Export_${now.year}${now.month}${now.day}.csv';
 
-      // 5. РАЗДЕЛЯЕМ ЛОГИКУ ДЛЯ WINDOWS И ANDROID
       if (Platform.isWindows) {
-        // ДЛЯ WINDOWS: Стандартный диалог "Сохранить как..."
         String? outputPath = await FilePicker.platform.saveFile(
           dialogTitle: 'Сохранить список клиентов',
           fileName: filename,
@@ -252,7 +271,6 @@ class _ClientListScreenState extends State<ClientListScreen> {
         );
 
         if (outputPath != null) {
-          // Пользователь выбрал путь, сохраняем ФАЙЛ КАК БАЙТЫ
           final file = File(outputPath);
           await file.writeAsBytes(csvBytes);
           
@@ -263,13 +281,11 @@ class _ClientListScreenState extends State<ClientListScreen> {
           }
         }
       } else {
-        // ДЛЯ ANDROID: Сохраняем во временный файл и вызываем меню "Поделиться"
         final directory = await getTemporaryDirectory();
         final path = '${directory.path}/$filename';
         final file = File(path);
-        await file.writeAsBytes(csvBytes); // Тоже сохраняем как байты!
+        await file.writeAsBytes(csvBytes); 
 
-        // Вызываем системное меню "Поделиться/Сохранить"
         await Share.shareXFiles(
           [XFile(path)],
           text: 'Список клиентов GCR APP',
@@ -282,5 +298,4 @@ class _ClientListScreenState extends State<ClientListScreen> {
       );
     }
   }
-
 }

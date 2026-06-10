@@ -355,31 +355,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const Divider(height: 20),
 
- // КНОПКА ПОЛНОГО СБРОСА БАЗЫ (ДЛЯ ЛОКАЛЬНОГО РЕЖИМА)
-                  ListTile(
-                    leading: const Icon(Icons.restore, color: Colors.deepOrange),
-                    title: const Text('Сбросить все данные'),
-                    subtitle: const Text('Удалить всех клиентов и абонементы (начать с нуля)'),
-                    onTap: () async {
-                      Navigator.pop(dialogContext);
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => ConfirmDeleteDialog(
-                          itemName: 'ВСЕ ДАННЫЕ (база будет пересоздана)',
-                        ),
-                      );
-                      if (confirmed == true) {
-                        final dbHelper = DatabaseHelper();
-                        await dbHelper.resetDatabase();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('База данных сброшена! Перезапустите приложение.')),
-                          );
-                          Future.delayed(const Duration(seconds: 1), () => exit(0));
-                        }
-                      }
-                    },
-                  ),
 
 // ЭКСПОРТ БАЗЫ
                   ListTile(
@@ -431,6 +406,34 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
                     },
                   ),
+
+                  
+ // КНОПКА ПОЛНОГО СБРОСА БАЗЫ (ДЛЯ ЛОКАЛЬНОГО РЕЖИМА)
+                  ListTile(
+                    leading: const Icon(Icons.restore, color: Colors.deepOrange),
+                    title: const Text('Сбросить все данные'),
+                    subtitle: const Text('Удалить всех клиентов и абонементы (начать с нуля)'),
+                    onTap: () async {
+                      Navigator.pop(dialogContext);
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => ConfirmDeleteDialog(
+                          itemName: 'ВСЕ ДАННЫЕ (база будет пересоздана)',
+                        ),
+                      );
+                      if (confirmed == true) {
+                        final dbHelper = DatabaseHelper();
+                        await dbHelper.resetDatabase();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('База данных сброшена! Перезапустите приложение.')),
+                          );
+                          Future.delayed(const Duration(seconds: 1), () => exit(0));
+                        }
+                      }
+                    },
+                  ),
+
 
                   // ЕДИНАЯ КНОПКА ВЫХОДА / ОТКЛЮЧЕНИЯ
                   ListTile(
