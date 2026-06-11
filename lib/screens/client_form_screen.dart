@@ -195,7 +195,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
               if (widget.client != null) ...[
                 OutlinedButton.icon(
                   icon: const Icon(Icons.update, color: Colors.green),
-                  label: const Text('ПРОДЛИТЬ НА 30 ДНЕЙ (от сегодня)', style: TextStyle(color: Colors.green, fontSize: 16)),
+                  label: const Text('ПРОДЛИТЬ НА 30 ДНЕЙ (от текущей даты)', style: TextStyle(color: Colors.green, fontSize: 16)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
                     side: const BorderSide(color: Colors.green),
