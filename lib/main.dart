@@ -63,6 +63,7 @@ class _AppLoaderState extends State<AppLoader> {
   bool _isLoading = true;
   bool _isConfigured = false;
   bool _showAuth = false;
+  String _authTitle = 'систему'; 
 
   @override
   void initState() {
@@ -71,7 +72,7 @@ class _AppLoaderState extends State<AppLoader> {
   }
 
   Future<void> _initApp() async {
-   bool configured = await _dbConfigService.isConfigured();
+    bool configured = await _dbConfigService.isConfigured();
     
     if (configured) {
       bool isLocal = await _dbConfigService.isLocalDb();
@@ -82,25 +83,26 @@ class _AppLoaderState extends State<AppLoader> {
         String key = await _dbConfigService.getAnonKey();
         await Supabase.initialize(url: url, anonKey: key);
         
-        bool isCustom = await _dbConfigService.isCustomDb();
+        bool isCustom = await _dbConfigService.isCustomDb(); // Получаем статус Custom
         bool isLoggedIn = Supabase.instance.client.auth.currentSession != null;
         
-        if (isLoggedIn && !isCustom) {
-          // ЗАПУСКАЕМ В ФОНЕ! Не ждём завершения (await убран).
-          // Таймаут внутри метода не даст ему зависнуть навечно.
+        if (isLoggedIn) {
+          // ЗАПУСКАЕМ В ФОНЕ! Не ждём завершения.
           _dbConfigService.fetchAndCacheGymId(); 
         }
 
         setState(() {
           _isConfigured = true;
-          _showAuth = !isCustom && !isLoggedIn;
+          _showAuth = !isLoggedIn; // Показываем авторизацию, если не залогинен (и для основного, и для своего облака!)
+          _authTitle = isCustom ? 'свою базу данных' : 'основное облако'; // Динамический заголовок
           _isLoading = false;
         });
       } else {
         // Если ЛОКАЛЬНЫЙ режим - пропускаем Supabase
         setState(() {
           _isConfigured = true;
-          _showAuth = false; // Авторизация не нужна
+          _showAuth = false; 
+          _authTitle = 'систему';
           _isLoading = false;
         });
       }
@@ -120,17 +122,17 @@ class _AppLoaderState extends State<AppLoader> {
     if (!isLocal && url.isNotEmpty) {
       await Supabase.initialize(url: url, anonKey: anonKey);
       
-      bool isCustom = await _dbConfigService.isCustomDb();
+      bool isCustom = await _dbConfigService.isCustomDb(); // Получаем статус Custom
       bool isLoggedIn = Supabase.instance.client.auth.currentSession != null;
 
-      if (isLoggedIn && !isCustom) {
-        // Тоже запускаем в фоне при перенастройке
+      if (isLoggedIn) {
         _dbConfigService.fetchAndCacheGymId();
       }
 
       setState(() {
         _isConfigured = true;
-        _showAuth = !isCustom && !isLoggedIn;
+        _showAuth = !isLoggedIn; // Показываем авторизацию, если не залогинен
+        _authTitle = isCustom ? 'свою базу данных' : 'основное облако'; // Динамический заголовок
         _isLoading = false;
       });
     } else {
@@ -138,6 +140,7 @@ class _AppLoaderState extends State<AppLoader> {
       setState(() {
         _isConfigured = true;
         _showAuth = false;
+        _authTitle = 'систему';
         _isLoading = false;
       });
     }
@@ -171,6 +174,7 @@ class _AppLoaderState extends State<AppLoader> {
             _showAuth = false;
           });
         },
+        dbName: _authTitle, 
       );
     }
 

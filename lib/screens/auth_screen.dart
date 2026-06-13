@@ -4,8 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AuthScreen extends StatefulWidget {
   final Function onSuccess;
   final VoidCallback? onBack;
+  final String dbName; 
 
-  const AuthScreen({super.key, required this.onSuccess, this.onBack});
+    const AuthScreen({super.key, required this.onSuccess, this.onBack, this.dbName = 'систему'});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -54,8 +55,8 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Вход в основное облако', 
+                Text(
+                  'Вход в ${widget.dbName}', 
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
                 ),
                 const SizedBox(height: 16),
