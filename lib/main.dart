@@ -420,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Синхронизируем значение выпадающего списка с сохраненным
     _selectedSyncDropdownValue = _syncIntervalMinutes;
     // Если текущее значение не стандартное, ставим кастомное
-    if (![0, 30, 60, 120, 1440].contains(_syncIntervalMinutes)) {
+    if (![0, 30, 60, 120].contains(_syncIntervalMinutes)) {
       _selectedSyncDropdownValue = -1; // -1 будет означать "Свой вариант"
       _customMinutesController.text = _syncIntervalMinutes.toString();
     }
@@ -439,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // --- КОМПАКТНЫЙ ВЫБОР ИНТЕРВАЛА ---
                     Row(
                       children: [
-                        const Expanded(child: Text('Синхронизация:', style: TextStyle(fontWeight: FontWeight.bold))),
+                        const Expanded(child: Text('Синхронизация через:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blue))),
                         Expanded(
                           child: DropdownButton<int>(
                             value: _selectedSyncDropdownValue,
@@ -448,7 +448,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               DropdownMenuItem(value: 30, child: Text('30 мин')),
                               DropdownMenuItem(value: 60, child: Text('1 час')),
                               DropdownMenuItem(value: 120, child: Text('2 часа')),
-                              DropdownMenuItem(value: 1440, child: Text('1 раз в сутки')),
                               DropdownMenuItem(value: 0, child: Text('Вручную')),
                               DropdownMenuItem(value: -1, child: Text('Свой вариант')),
                             ],
@@ -490,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       dense: true,
                       leading: Icon(_appPin == null ? Icons.lock_open : Icons.lock, color: Colors.orange),
                       title: Text(_appPin == null ? 'Установить пароль' : 'Сменить пароль'),
-                      subtitle: Text(_appPin == null ? 'Защита опасных кнопок' : 'Пароль установлен'),
+                      subtitle: Text(_appPin == null ? 'Защита важных кнопок' : 'Пароль установлен'),
                       onTap: () {
                         Navigator.pop(dialogContext);
                         _showSetPinDialog();
@@ -509,11 +508,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const Divider(height: 20),
 
-                    // --- ОПАСНЫЕ КНОПКИ (ЗАЩИЩЕННЫЕ ПАРОЛЕМ) ---
+                    // --- Важные КНОПКИ (ЗАЩИЩЕННЫЕ ПАРОЛЕМ) ---
                     ListTile(
                       leading: const Icon(Icons.cleaning_services_outlined, color: Colors.grey),
                       title: const Text('Очистить локальный архив', style: TextStyle(fontSize: 14)),
-                      onTap: () async {
+                        onTap: () async {
                         Navigator.pop(dialogContext); 
                         if (!await _verifyPin()) return; // ПРОВЕРКА ПАРОЛЯ
                         
@@ -589,6 +588,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ListTile(
                       leading: const Icon(Icons.restore, color: Colors.deepOrange),
                       title: const Text('Сбросить все данные', style: TextStyle(fontSize: 14)),
+                      subtitle: const Text('Начать с пустой базы данных', style: TextStyle(fontSize: 11)),
                       onTap: () async {
                         Navigator.pop(dialogContext);
                         if (!await _verifyPin()) return; // ПРОВЕРКА ПАРОЛЯ
