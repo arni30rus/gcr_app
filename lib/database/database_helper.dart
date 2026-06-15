@@ -27,12 +27,12 @@ class DatabaseHelper {
     }
 
     final dbPath = await getDatabasesPath();
-    // ИЗМЕНЕНО ИМЯ ФАЙЛА: Это заставит создать БД с нуля по новой схеме!
-    final path = join(dbPath, 'gcr_app_db_v4.db');
+    
+    final path = join(dbPath, 'gcr_app.db');
 
     return await openDatabase(
       path,
-      version: 1, // Версия снова 1, так как это новая БД
+      version: 1,
       onCreate: _onCreate,
     );
   }
