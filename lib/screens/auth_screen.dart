@@ -25,13 +25,23 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      
+      // Если вход успешен, вызываем коллбек (он переключит экран в main.dart)
       widget.onSuccess();
+      
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка входа: ${e.toString()}')),
-      );
+      // Проверяем, жив ли экран, прежде чем показывать ошибку
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка входа: ${e.toString()}')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      // ПРОВЕРКА НА MOUNTED: Если экран уже закрылся (успешный вход), 
+      // мы НЕ вызываем setState для мертвого экрана.
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

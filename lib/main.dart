@@ -522,7 +522,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                         if (confirmed == true) {
                           final dbHelper = DatabaseHelper();
-                          await dbHelper.clearLocalArchive(); 
+                          await dbHelper.clearLocalArchive();
+                          await _syncService.clearLastSyncTime(); 
+
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Локальный архив очищен')),
@@ -567,8 +569,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (confirmed == true) {
                           final dbHelper = DatabaseHelper();
                           bool success = await dbHelper.importDatabase();
+
                           if (mounted) {
                             if (success) {
+                              await _syncService.clearLastSyncTime();
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('База успешно импортирована! Перезапустите приложение.')),
                               );
@@ -600,6 +605,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (confirmed == true) {
                           final dbHelper = DatabaseHelper();
                           await dbHelper.resetDatabase();
+                          await _syncService.clearLastSyncTime();
+
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('База данных сброшена! Перезапустите приложение.')),

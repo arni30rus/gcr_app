@@ -61,10 +61,29 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   Future<void> _loadSubTypes() async {
     final types = await dbHelper.getAllSubscriptionTypes();
     setState(() {
-      _subTypes = types;
-      // Если создаем нового клиента и типы есть, ставим первый по умолчанию
-      if (widget.client == null && types.isNotEmpty && _selectedSubTypeId == null) {
-        _selectedSubTypeId = types.first.id;
+      // ФИЛЬТРУЕМ: В выпадающем списке показываем только АКТИВНЫЕ типы абонементов
+      // (чтобы случайно не назначить клиенту удаленный тип)
+      _subTypes = types.where((t) => t.isActive).toList();
+
+      if (widget.client == null) {
+        // Если создаем нового клиента и типы есть, ставим первый по умолчанию
+        if (_subTypes.isNotEmpty && _selectedSubTypeId == null) {
+          _selectedSubTypeId = _subTypes.first.id;
+        }
+      } else {
+        // Если РЕДАКТИРУЕМ клиента:
+        // Проверяем, существует ли ещё тип абонемента, который был у клиента
+        bool typeStillExists = _subTypes.any((t) => t.id == widget.client!.subType);
+        
+        if (typeStillExists) {
+          // Тип существует, всё ок, оставляем его выбранным
+          _selectedSubTypeId = widget.client!.subType;
+        } else {
+          // Тип УДАЛЕН! Старого значения в списке больше нет.
+          // Чтобы DropdownButton не упал, сбрасываем значение на первый доступный активный тип.
+          // Пользователь увидит пустое поле или другой тип и должен будет выбрать заново.
+          _selectedSubTypeId = _subTypes.isNotEmpty ? _subTypes.first.id : null;
+        }
       }
     });
   }

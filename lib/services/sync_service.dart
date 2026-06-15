@@ -7,27 +7,28 @@ import 'db_config_service.dart';
 
 class SyncService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  // Используем геттер (lazy initialization). 
-  // Supabase.instance.client будет вызван ТОЛЬКО когда мы обратимся к _supabase внутри метода synchronize()
   SupabaseClient get _supabase => Supabase.instance.client; 
 
-  // Ключ для хранения времени последней синхронизации
   final String _lastSyncKey = 'last_sync_time';
 
-  // Получить время последней синхронизации
   Future<DateTime?> getLastSyncTime() async {
     final prefs = await SharedPreferences.getInstance();
     final String? timeStr = prefs.getString(_lastSyncKey);
     if (timeStr != null) {
       return DateTime.parse(timeStr);
     }
-    return null; // Если никогда не синхронизировались
+    return null; 
   }
 
-  // Сохранить время синхронизации
   Future<void> _saveLastSyncTime(DateTime time) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_lastSyncKey, time.toIso8601String());
+  }
+
+  // МЕТОД ДЛЯ СБРОСА ДАТЫ СИНХРОНИЗАЦИИ
+  Future<void> clearLastSyncTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_lastSyncKey);
   }
 
   // Основной метод синхронизации
@@ -36,7 +37,6 @@ class SyncService {
       final DateTime? lastSync = await getLastSyncTime();
       final DateTime now = DateTime.now();
 
-      // Получаем текущий gym_id из кэша (если пользователь авторизован в облаке)
       final dbConfigService = DbConfigService();
       final String? currentGymId = await dbConfigService.getCachedGymId();
 
@@ -70,12 +70,11 @@ class SyncService {
       List<SubscriptionType> typesToPush = [];
       for (var localType in allLocalTypes) {
         
-        // АВТОПРИВЯЗКА К ЗАЛУ: Если тип из локальной базы без gym_id, а мы авторизованы
         bool wasModified = false;
         if (localType.gymId == null && currentGymId != null) {
           localType.gymId = currentGymId;
-          localType.updatedAt = now.toIso8601String(); // Обновляем дату, чтобы сервер принял
-          await _dbHelper.updateSubscriptionType(localType); // Сохраняем локально
+          localType.updatedAt = now.toIso8601String(); 
+          await _dbHelper.updateSubscriptionType(localType); 
           wasModified = true;
         }
 
@@ -123,12 +122,11 @@ class SyncService {
 
       for (var localClient in allLocalClients) {
         
-        // АВТОПРИВЯЗКА К ЗАЛУ: Если клиент из локальной базы без gym_id, а мы авторизованы
         bool wasModified = false;
         if (localClient.gymId == null && currentGymId != null) {
           localClient.gymId = currentGymId;
-          localClient.updatedAt = now.toIso8601String(); // Обновляем дату
-          await _dbHelper.updateClient(localClient); // Сохраняем локально
+          localClient.updatedAt = now.toIso8601String(); 
+          await _dbHelper.updateClient(localClient); 
           wasModified = true;
         }
 
@@ -155,7 +153,6 @@ class SyncService {
     }
   }
   
-  // Получить ID зала текущего пользователя ИЗ КЭША
   Future<String?> getCurrentUserGymId() async {
     final dbConfigService = DbConfigService();
     return await dbConfigService.getCachedGymId();
