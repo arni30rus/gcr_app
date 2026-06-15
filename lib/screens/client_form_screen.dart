@@ -22,6 +22,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   late TextEditingController _idController;
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
+  late TextEditingController _telegramIdController; 
   late int? _selectedSubTypeId; // Теперь храним ID типа из БД
   late TextEditingController _startDateController;
   late TextEditingController _endDateController;
@@ -35,6 +36,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     _idController = TextEditingController(text: widget.client?.id ?? widget.initialBarcode ?? '');
     _nameController = TextEditingController(text: widget.client?.fullName ?? '');
     _phoneController = TextEditingController(text: widget.client?.phone ?? '');
+    _telegramIdController = TextEditingController(text: widget.client?.telegramId ?? '');
     _selectedSubTypeId = widget.client?.subType; // subType теперь это ID
     String start = widget.client?.startDate ?? DateTime.now().toIso8601String().substring(0, 10);
     String end = widget.client?.endDate ?? DateTime.now().add(const Duration(days: 30)).toIso8601String().substring(0, 10);
@@ -43,6 +45,18 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
 
     _loadSubTypes();
   }
+
+@override
+  void dispose() {
+    _idController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _telegramIdController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    super.dispose();
+  }
+
 
   Future<void> _loadSubTypes() async {
     final types = await dbHelper.getAllSubscriptionTypes();
@@ -90,6 +104,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
           lastVisit: widget.client?.lastVisit,
           updatedAt: now,
           gymId: gymId,
+          telegramId: _telegramIdController.text.isEmpty ? null : _telegramIdController.text, 
           createdAt: widget.client?.createdAt ?? now, 
         );
 
@@ -154,6 +169,17 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
+              // НОВОЕ ПОЛЕ TELEGRAM ID
+              TextFormField(
+                controller: _telegramIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Telegram ID', 
+                  border: OutlineInputBorder(),
+                  hintText: '@username или числовой ID'
+                ),
+                keyboardType: TextInputType.text,
+              ),
+              const SizedBox(height: 16), 
               // Динамический выпадающий список
               DropdownButtonFormField<int>(
                 initialValue: _selectedSubTypeId,

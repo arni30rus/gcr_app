@@ -67,7 +67,8 @@ class DatabaseHelper {
         updated_at TEXT NOT NULL,
         gym_id TEXT,
         is_active INTEGER DEFAULT 1,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        telegram_id TEXT
       )
     ''');
 
@@ -375,7 +376,7 @@ class DatabaseHelper {
     }
     
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'gcr_app_db_v4.db');
+    final path = join(dbPath, 'gcr_app.db');
     final file = File(path);
     
     if (await file.exists()) {

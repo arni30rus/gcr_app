@@ -133,7 +133,7 @@ CREATE TABLE user_gyms ( user_id UUID REFERENCES auth.users(id) ON DELETE CASCAD
 CREATE TABLE subscription_types ( id INTEGER PRIMARY KEY, name TEXT NOT NULL, start_time TEXT NOT NULL, end_time TEXT NOT NULL, is_unlimited_time INTEGER NOT NULL, allowed_days TEXT NOT NULL, is_vip INTEGER NOT NULL, updated_at TEXT NOT NULL, gym_id UUID REFERENCES gyms(id), is_active BOOLEAN DEFAULT true, is_one_time_visit BOOLEAN DEFAULT false );
 
 -- 4. Таблица Клиентов
-CREATE TABLE clients ( id TEXT PRIMARY KEY, full_name TEXT NOT NULL, phone TEXT NOT NULL, sub_type INTEGER NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL, last_visit TEXT, updated_at TEXT NOT NULL, gym_id UUID REFERENCES gyms(id), is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ DEFAULT NOW() );
+CREATE TABLE clients ( id TEXT PRIMARY KEY, full_name TEXT NOT NULL, phone TEXT NOT NULL, sub_type INTEGER NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL, last_visit TEXT, updated_at TEXT NOT NULL, gym_id UUID REFERENCES gyms(id), is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ DEFAULT NOW(), telegram_id TEXT );
 
 -- 5. Таблица посещений
 CREATE TABLE visits ( id BIGSERIAL PRIMARY KEY, client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE, created_at TIMESTAMPTZ DEFAULT NOW(), gym_id UUID REFERENCES gyms(id) );

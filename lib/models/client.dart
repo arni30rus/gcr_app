@@ -12,6 +12,7 @@ class Client {
   String? gymId; // id зала
   bool isActive;  
   String createdAt;
+  String? telegramId;
 
   Client({
     required this.id,
@@ -25,6 +26,7 @@ class Client {
     this.gymId,
     this.isActive = true,
     required this.createdAt,
+    this.telegramId,
   });
 
   // Метод для преобразования из Map (когда читаем из SQLite)
@@ -42,6 +44,7 @@ class Client {
        // SQLite хранит boolean как 0 или 1
       isActive: (map['is_active'] == 1 || map['is_active'] == true), 
       createdAt: map['created_at'] ?? DateTime.now().toIso8601String(), 
+      telegramId: map['telegram_id'],
     );
   }
 
@@ -59,6 +62,7 @@ class Client {
       'gym_id': gymId,
       'is_active': isActive ? 1 : 0,
       'created_at': createdAt,
+      'telegram_id': telegramId, 
     };
   }
 }
