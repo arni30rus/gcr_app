@@ -2,7 +2,7 @@
 ; Название вашего приложения
 AppName=GCR APP
 ; Версия приложения
-AppVersion=1.0.3
+AppVersion=1.0.5
 ; Издатель
 AppPublisher=arni30rus
 ; Папка установки по умолчанию
@@ -10,7 +10,7 @@ DefaultDirName={autopf}\GCR APP
 ; Название группы в меню Пуск
 DefaultGroupName=GCR APP
 ; Имя итогового файла установщика
-OutputBaseFilename=GCR_APP_1.0.3_Setup
+OutputBaseFilename=GCR_APP_1.0.5_Setup
 ; Папка, куда сохранится готовый установщик (создастся в папке проекта)
 OutputDir=InstallerOutput
 ; Сжатие (lzma2/ultra64 дает минимальный размер файла)
