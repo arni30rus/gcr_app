@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart'; // Добавлено для открытия ссылок
+import 'package:url_launcher/url_launcher.dart';
 
 class SetupOwnDbGuideScreen extends StatelessWidget {
   const SetupOwnDbGuideScreen({super.key});
@@ -52,7 +52,6 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             
-            // КНОПКА ССЫЛКИ НА ОФ. ДОКУМЕНТАЦИЮ
             Center(
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.link, size: 16),
@@ -82,28 +81,48 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
               'cd supabase-project', 
               style: TextStyle(fontFamily: 'Courier', fontSize: 12)
             )),
-            const Text('После склонированную папку можно удалить.'),
             const SizedBox(height: 16),
 
             _buildStep(context, '2', 'Генерация ключей и запуск'),
-            const Text('Supabase предоставляет удобные скрипты. Выполните их по очереди для генерации безопасных ключей и запуска сервера:'),
+            const Text('Выполните скрипты для генерации безопасных ключей и запуска сервера:'),
             Container(width: double.infinity, padding: const EdgeInsets.all(8), color: Colors.grey[200], child: const SelectableText(
-              '# Генерация паролей и секретов:\n'
-              'sh utils/generate-keys.sh\n\n'
-              '# Добавление новых API ключей:\n'
-              'sh utils/add-new-auth-keys.sh\n\n'
-              '# Запуск Supabase:\n'
+              'sh utils/generate-keys.sh\n'
+              'sh utils/add-new-auth-keys.sh\n'
               'sh run.sh start', 
               style: TextStyle(fontFamily: 'Courier', fontSize: 12)
             )),
             const SizedBox(height: 8),
             const Text('Остановить сервер можно командой: sh run.sh stop', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
+            const SizedBox(height: 24),
+
+            // ОПТИМИЗАЦИЯ
+            _buildStep(context, '3', 'Оптимизация (Защита от Bloat)'),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange)),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Важно!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                  SizedBox(height: 4),
+                  Text('По умолчанию Supabase запускает сервисы логирования и аналитики, которые могут «раздуть» базу до десятков ГБ. Для работы данного приложения они не нужны.'),
+                  SizedBox(height: 8),
+                  Text('1. Откройте файл docker-compose.yml (например, через nano docker-compose.yml).'),
+                  Text('2. Найдите и закомментируйте (поставьте # в начале строк) блоки сервисов:'),
+                  Text('   - analytics (и все связанные с ним volumes)', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  Text('   - logflare', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  Text('   - realtime', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  Text('3. Сохраните файл и перезапустите сервер: sh run.sh stop && sh run.sh start'),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
 
-            _buildStep(context, '3', 'Порты и доступ'),
-            const Text('Убедитесь, что в брандмауэре Ubuntu открыты порты 8000 (API) и 3000.', style: TextStyle(fontWeight: FontWeight.bold)),
+            _buildStep(context, '4', 'Порты и доступ'),
+            const Text('Убедитесь, что в брандмауэре Ubuntu открыты порты 8000 и 3000.', style: TextStyle(fontWeight: FontWeight.bold)),
             const Text('Панель управления будет доступна по http://ВАШ_IP:8000'),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
             const Divider(height: 30),
 
@@ -113,7 +132,7 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             const Text('ОБЩИЕ ШАГИ (Для облака и своего сервера):', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
 
-            _buildStep(context, '3', 'Создание таблиц (SQL)'),
+            _buildStep(context, '5', 'Создание таблиц (SQL)'),
             const Text('В панели Supabase откройте SQL Editor. Скопируйте ВЕСЬ код ниже и нажмите "Run":'),
             const SizedBox(height: 12),
             
@@ -162,11 +181,11 @@ CREATE POLICY "Users can manage renewals in their gym" ON renewals FOR ALL USING
             ),
             const SizedBox(height: 24),
 
-            _buildStep(context, '4', 'Создание администратора зала'),
+            _buildStep(context, '6', 'Создание администратора зала'),
             const Text('1. Authentication -> Users -> Add User. Скопируйте ID пользователя (UUID).\n2. Table Editor -> gyms -> Insert row. Придумайте название. Скопируйте id зала.\n3. Table Editor -> user_gyms -> Insert row. Вставьте ID пользователя и ID зала.'),
             const SizedBox(height: 24),
 
-            _buildStep(context, '5', 'Подключение в приложении'),
+            _buildStep(context, '7', 'Подключение в приложении'),
             const Text('Вернитесь в приложение. Вставьте URL и Key.\n(Для облака: Settings -> API)\n(Для сервера: http://ВАШ_IP:8000 и ANON_KEY из файла .env).\nНажмите "Подключиться" и перезапустите приложение.'),
           ],
         ),
