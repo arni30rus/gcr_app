@@ -72,12 +72,14 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             _buildStep(context, '1', 'Подготовка сервера'),
+            const Text('Системные требования к серверу: RAM: 2-4 гб, CPU: 2 ядра, Диск(SSD): 20-30гб'),
             const Text('Установите Docker и Git на ваш сервер Ubuntu. Затем выполните команды в терминале по очереди:'),
             Container(width: double.infinity, padding: const EdgeInsets.all(8), color: Colors.grey[200], child: const SelectableText(
               'git clone --depth 1 https://github.com/supabase/supabase\n'
               'mkdir supabase-project\n'
               'cp -rf supabase/docker/* supabase-project\n'
               'cp supabase/docker/.env.example supabase-project/.env\n'
+              'rm -r supabase\n'
               'cd supabase-project', 
               style: TextStyle(fontFamily: 'Courier', fontSize: 12)
             )),
@@ -96,24 +98,41 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // ОПТИМИЗАЦИЯ
-            _buildStep(context, '3', 'Оптимизация (Защита от Bloat)'),
-            const SizedBox(height: 10),
+                        _buildStep(context, '3', 'Оптимизация (Защита от Bloat)'),
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange)),
-              child: const Column(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange[50], 
+                borderRadius: BorderRadius.circular(8), 
+                border: Border.all(color: Colors.orange)
+              ),
+              child: Column( // Убрал const здесь
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Важно!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
-                  SizedBox(height: 4),
-                  Text('По умолчанию Supabase запускает сервисы логирования и аналитики, которые могут «раздуть» базу до десятков ГБ. Для работы данного приложения они не нужны.'),
-                  SizedBox(height: 8),
-                  Text('1. Откройте файл docker-compose.yml (например, через nano docker-compose.yml).'),
-                  Text('2. Найдите и закомментируйте (поставьте # в начале строк) блоки сервисов:'),
-                  Text('   - analytics (и все связанные с ним volumes)', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
-                  Text('   - logflare', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
-                  Text('   - realtime', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
-                  Text('3. Сохраните файл и перезапустите сервер: sh run.sh stop && sh run.sh start'),
+                  const Text('Важно!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                  const SizedBox(height: 4),
+                  const Text('По умолчанию Supabase запускает сервисы логирования, аналитики и хранения картинок. Они забивают жесткий диск логами (до десятков ГБ) и тратят оперативную память. Для данного приложения они не нужны.'),
+                  const SizedBox(height: 8),
+                  const Text('1. Откройте файл docker-compose.yml (команда: nano docker-compose.yml).'),
+                  const Text('2. Найдите в файле следующие сервисы и добавьте им строку profiles: ["disabled"] (как в примере ниже):'),
+                  const Text('   • storage', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  const Text('   • imgproxy', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  const Text('   • realtime', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  const Text('   • functions', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  const SizedBox(height: 8),
+                  const Text('Пример, как должно выглядеть:'),
+                  Container( // Добавил const сюда
+                    width: double.infinity, 
+                    padding: const EdgeInsets.all(8), 
+                    color: Colors.black87, 
+                    child: const Text(
+                      '  storage:\n    profiles: ["disabled"]\n    image: supabase/storage-api...\n\n  imgproxy:\n    profiles: ["disabled"]\n    image: darthsim/imgproxy...',
+                      style: TextStyle(fontFamily: 'Courier', fontSize: 11, color: Colors.greenAccent),
+                    )
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('3. Сохраните файл и перезапустите сервер: sh run.sh stop && sh run.sh start'),
+                  const Text('Это сэкономит ресурсы сервера и защитит базу от «раздувания».', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
                 ],
               ),
             ),
