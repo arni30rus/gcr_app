@@ -72,14 +72,12 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             _buildStep(context, '1', 'Подготовка сервера'),
-            const Text('Системные требования к серверу: RAM: 2-4 гб, CPU: 2 ядра, Диск(SSD): 20-30гб'),
             const Text('Установите Docker и Git на ваш сервер Ubuntu. Затем выполните команды в терминале по очереди:'),
             Container(width: double.infinity, padding: const EdgeInsets.all(8), color: Colors.grey[200], child: const SelectableText(
               'git clone --depth 1 https://github.com/supabase/supabase\n'
               'mkdir supabase-project\n'
               'cp -rf supabase/docker/* supabase-project\n'
               'cp supabase/docker/.env.example supabase-project/.env\n'
-              'rm -r supabase\n'
               'cd supabase-project', 
               style: TextStyle(fontFamily: 'Courier', fontSize: 12)
             )),
@@ -97,8 +95,7 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             const Text('Остановить сервер можно командой: sh run.sh stop', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
             const SizedBox(height: 24),
 
-            // ОПТИМИЗАЦИЯ
-                        _buildStep(context, '3', 'Оптимизация (Защита от Bloat)'),
+            _buildStep(context, '3', 'Оптимизация (Защита от Bloat)'),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -106,32 +103,32 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8), 
                 border: Border.all(color: Colors.orange)
               ),
-              child: Column( // Убрал const здесь
+              child: Column( 
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Важно!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
                   const SizedBox(height: 4),
-                  const Text('По умолчанию Supabase запускает сервисы логирования, аналитики и хранения картинок. Они забивают жесткий диск логами (до десятков ГБ) и тратят оперативную память. Для данного приложения они не нужны.'),
+                  const Text('По умолчанию Supabase запускает сервисы логирования, аналитики и хранения картинок. Они забивают жесткий диск логами (до десятков ГБ) и тратят оперативную память. Для спортзала они не нужны.'),
                   const SizedBox(height: 8),
                   const Text('1. Откройте файл docker-compose.yml (команда: nano docker-compose.yml).'),
                   const Text('2. Найдите в файле следующие сервисы и добавьте им строку profiles: ["disabled"] (как в примере ниже):'),
-                  const Text('   • storage', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
-                  const Text('   • imgproxy', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
-                  const Text('   • realtime', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
-                  const Text('   • functions', style: TextStyle(fontFamily: 'Courier', fontSize: 12)),
+                  const Text('   • storage', style: TextStyle(fontFamily: 'Courier', fontSize: 11)),
+                  const Text('   • imgproxy', style: TextStyle(fontFamily: 'Courier', fontSize: 11)),
+                  const Text('   • realtime-dev.supabase-realtime', style: TextStyle(fontFamily: 'Courier', fontSize: 11)),
+                  const Text('   • edge-functions', style: TextStyle(fontFamily: 'Courier', fontSize: 11)),
                   const SizedBox(height: 8),
                   const Text('Пример, как должно выглядеть:'),
-                  Container( // Добавил const сюда
+                  Container(
                     width: double.infinity, 
                     padding: const EdgeInsets.all(8), 
                     color: Colors.black87, 
                     child: const Text(
                       '  storage:\n    profiles: ["disabled"]\n    image: supabase/storage-api...\n\n  imgproxy:\n    profiles: ["disabled"]\n    image: darthsim/imgproxy...',
-                      style: TextStyle(fontFamily: 'Courier', fontSize: 11, color: Colors.greenAccent),
+                      style: TextStyle(fontFamily: 'Courier', fontSize: 10, color: Colors.greenAccent),
                     )
                   ),
                   const SizedBox(height: 8),
-                  const Text('3. Сохраните файл и перезапустите сервер: sh run.sh stop && sh run.sh start'),
+                  const Text('3. Сохраните файл (Ctrl+O, Enter, Ctrl+X) и перезапустите сервер: sh run.sh stop && sh run.sh start'),
                   const Text('Это сэкономит ресурсы сервера и защитит базу от «раздувания».', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
                 ],
               ),
@@ -139,9 +136,9 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             _buildStep(context, '4', 'Порты и доступ'),
-            const Text('Убедитесь, что в брандмауэре Ubuntu открыты порты 8000 и 3000.', style: TextStyle(fontWeight: FontWeight.bold)),
-            const Text('Панель управления будет доступна по http://ВАШ_IP:8000'),
-            const SizedBox(height: 12),
+            const Text('Убедитесь, что в брандмауэре Ubuntu открыты порты 8000 (API) и 3000 (Панель управления).', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Панель управления будет доступна по http://ВАШ_IP:3000'),
+            const SizedBox(height: 24),
 
             const Divider(height: 30),
 
@@ -151,8 +148,8 @@ class SetupOwnDbGuideScreen extends StatelessWidget {
             const Text('ОБЩИЕ ШАГИ (Для облака и своего сервера):', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
 
-            _buildStep(context, '5', 'Создание таблиц (SQL)'),
-            const Text('В панели Supabase откройте SQL Editor. Скопируйте ВЕСЬ код ниже и нажмите "Run":'),
+            _buildStep(context, '5', 'Создание таблиц и прав (SQL)'),
+            const Text('В панели Supabase откройте SQL Editor. Скопируйте ВЕСЬ код ниже и нажмите "Run". Этот скрипт создаст таблицы, настроит безопасность и выдаст необходимые права для API:'),
             const SizedBox(height: 12),
             
             Container(
@@ -187,13 +184,26 @@ ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE renewals ENABLE ROW LEVEL SECURITY;
 
--- 8. Правила доступа
+-- 8. Правила доступа (RLS Policies)
 CREATE POLICY "Users can view their gyms" ON gyms FOR SELECT USING (id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 CREATE POLICY "Users can view their gym links" ON user_gyms FOR SELECT USING (user_id = auth.uid());
 CREATE POLICY "Users can manage sub types in their gym" ON subscription_types FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 CREATE POLICY "Users can manage clients in their gym" ON clients FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 CREATE POLICY "Users can manage visits in their gym" ON visits FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
 CREATE POLICY "Users can manage renewals in their gym" ON renewals FOR ALL USING (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid())) WITH CHECK (gym_id IN (SELECT gym_id FROM user_gyms WHERE user_id = auth.uid()));
+
+-- 9. Права доступа к API (Обязательно по новой политике Supabase с 30 октября 2024)
+GRANT SELECT ON public.gyms TO anon, authenticated;
+GRANT SELECT ON public.user_gyms TO anon, authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.subscription_types TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.clients TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.visits TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.renewals TO anon, authenticated, service_role;
+
+-- 10. Права на генераторы ID для таблиц visits и renewals
+GRANT USAGE, SELECT ON SEQUENCE visits_id_seq TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE renewals_id_seq TO anon, authenticated;
 ''',
                 style: TextStyle(fontFamily: 'Courier', fontSize: 11, color: Colors.grey[900]),
               ),
